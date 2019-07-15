@@ -112,11 +112,11 @@ class Main_Window(QWidget):
         self.button_logout.show()
         self.button_search_id.show()
 
-    # -> 완료
+    # -> 기능 추가
     def onClick_login(self):
         self.main_to_login = Login_Window()
 
-    # -> 완료
+    # -> 기능 추가
     def click_search(self):
         self.button_search_id.close()
         self.button_login.close()
@@ -334,7 +334,7 @@ class Main_Window(QWidget):
         self.back_btn.initStyle()
         self.back_btn.show()
 
-    #- > 완료
+    # - > 기능 추가
     def click_modify_word(self):
         self.profile_label.close()
         self.label_myid.close()
@@ -445,7 +445,7 @@ class Main_Window(QWidget):
         self.button_plus_word.show()
         self.button_create.show()
 
-    # -> 완료
+    # -> 기능 추가
     def button_modify_complete_click(self):
         QMessageBox.about(self, "message", "Modify successful!!")
         self.label_id.close()
@@ -480,7 +480,7 @@ class Main_Window(QWidget):
 
         self.initUI_list()
 
-    # -> 완료
+    # -> 기능 추가
     def click_write(self):
         self.profile_label.close()
         self.label_myid.close()
@@ -594,7 +594,7 @@ class Main_Window(QWidget):
         self.button_plus_word.show()
         self.button_create.show()
 
-    # -> 완료
+    # -> 기능 추가
     def click_create_list(self):
         QMessageBox.about(self, 'Message', 'Complete!!!')
 
@@ -608,7 +608,7 @@ class Main_Window(QWidget):
 
         self.initUI_list()
 
-    # -> 완료
+    # -> 보완
     def func_add_word(self):
         Main_Window.gap_in_write += 1
         self.LineEdit_dict_question1 = QLineEdit(self)
@@ -667,7 +667,7 @@ class Main_Window(QWidget):
 
         self.initUI_list()
 
-    # -> 완료
+    # -> 기능 추가
     def click_word(self):
         self.profile_label.close()
         self.label_myid.close()
@@ -744,7 +744,7 @@ class Main_Window(QWidget):
 
         self.initUI_list()
 
-    # -> 완료
+    # -> 기능 추가
     def click_solve(self):
         self.label_question1.close()
         self.label_answer1.close()
@@ -818,7 +818,7 @@ class Main_Window(QWidget):
         self.button_question_stop.clicked.connect(self.click_question_stop)
         self.button_question_stop.show()
 
-    # -> 완료
+    # -> 기능 추가
     def click_question_stop(self):
         reply = QMessageBox.question(self, 'Stop', 'Are you sure to stop?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
 
@@ -979,10 +979,25 @@ class Login_Window(QWidget):
         self.label_image.move(123, 405)
         self.label_image.setPixmap(self.pixmap_color)
 
-    # -> 완료
+    # -> 기능 추가
     def func_login(self):
-        self.close()
-        QMessageBox.about(self, "Login", "Login Successful!")
+        url= "http://api.teamrequin.kro.kr/auth/login"
+        id = self.LineEdit_id.text()
+        pw = self.LineEdit_pw.text()
+        data = {
+            'id': id,
+            'pw': pw
+        }
+        res = requests.post(url=url, json=data)
+        code = res.status_code
+
+        if code == 200:
+            self.close()
+            QMessageBox.about(self, 'Message', 'Login succeeded!')
+        elif code == 406:
+            QMessageBox.about(self, 'Message', 'Please enter id and password again.')
+
+        print(code)
 
     # -> 완료
     def Click_new(self):
@@ -1021,7 +1036,6 @@ class Login_Window(QWidget):
         self.LineEdit_id.resize(250, 50)
         self.LineEdit_id.move(35, 190)
         self.LineEdit_id.setPlaceholderText('ID')
-        self.LineEdit_id.setEchoMode(QLineEdit.Password)
 
         self.LineEdit_pw.resize(330, 50)
         self.LineEdit_pw.move(35, 270)
@@ -1068,11 +1082,12 @@ class Login_Window(QWidget):
         Button_check_name = PushButton('Check', self)
         Button_check_name.resize(70, 50)
         Button_check_name.move(295, 120)
-        # Button_check_name.clicked.connect(self.func_check_name_overlap)
+        Button_check_name.clicked.connect(self.func_check_name_overlap)
 
         Button_check_id = PushButton('Check', self)
         Button_check_id.resize(70, 50)
         Button_check_id.move(295, 190)
+        Button_check_id.clicked.connect(self.func_check_id_overlap)
 
         # PushButton design 설정
         Button_new.set_hovering_style("PushButton{border-radius: 15px; background-color: #4593D3; color: white; font: 25px Bahnschrift; font-weight: bold;}")
@@ -1095,21 +1110,74 @@ class Login_Window(QWidget):
         Button_check_id.show()
         Button_new.show()
 
-    # 미완성
+    # -> 회원가입 시 name이 중복되는지 체크하는 함수
+    def func_check_name_overlap(self):
+        url = "http://api.teamrequin.kro.kr/auth/check-same-name"
+        text = self.LineEdit_name.text()
+        data = {
+            "name": text
+        }
+        res = requests.post(url=url, json=data)
+        code = res.status_code
 
-    # def func_check_name_overlap(self):
-    #     url = "http://10.156.147.139/auth/check-same-name"
-    #     text = self.LineEdit_name.text()
-    #     data = {
-    #         "name": text
-    #     }
-    #     res = requests.post(url=url, json=data)
-    #     print(res.status_code)
-    #     print(res.url)
+        if code == 406:
+            QMessageBox.about(self, 'Message', 'Nickname exists')
+        elif code == 201:
+            QMessageBox.about(self, 'Message', 'You can use this nickname')
 
+    # -> 회원가입 시 id가 중복되는지 체크하는 함수
+    def func_check_id_overlap(self):
+        url = "http://api.teamrequin.kro.kr/auth/sameaccount"
+        text = self.LineEdit_id.text()
+        data = {
+            "id": text
+        }
+        res = requests.post(url=url, json=data)
+        code = res.status_code
+
+        if code == 406:
+            QMessageBox.about(self, 'Message', 'ID exists')
+        elif code == 201:
+            QMessageBox.about(self, 'Message', 'You can use this ID')
+
+    # -> 회원가입 함수 (미완성)
     def func_signup(self):
-        self.close()
-        QMessageBox.about(self, "Sign up", "Sign up Successful!")
+        url = "http://api.teamrequin.kro.kr/auth/register"
+        id = self.LineEdit_id.text()
+        pw = self.LineEdit_pw.text()
+        pw_check = self.LineEdit_pw_chek.text()
+        name = self.LineEdit_name.text()
+
+        data = {
+            'id' : id,
+            'pw' : pw,
+            'pw_check' : pw_check,
+            'name' : name
+        }
+        res = requests.post(url= url, json= data)
+        code = res.status_code
+
+        if code == 201:
+            url = "http://api.teamrequin.kro.kr/auth/check-same-name"
+            name = self.LineEdit_name.text()
+            data = {
+                "name": name
+            }
+            res = requests.post(url=url, json=data)
+            code = res.status_code
+
+            if code == 201:
+                self.close()
+                QMessageBox.about(self, "Sign up", "Sign up Successful!")
+
+            elif code == 406:
+                QMessageBox.about(self, 'Message', 'Nickname exists')
+
+
+        elif code == 406:
+            QMessageBox.about(self, "Sign up", "pw and pw_check have unsame text")
+        elif code == 409:
+            QMessageBox.about(self, "Sign up", "ID exists")
 
 class PushButton(QPushButton):
     default_style = ""
