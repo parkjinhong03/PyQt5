@@ -1,9 +1,12 @@
 import sys
-import requests
+import requests, json
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.Qt import *
 from PyQt5 import QtCore
+
+
+login_token = ''
 
 
 class Main_Window(QWidget):
@@ -31,15 +34,15 @@ class Main_Window(QWidget):
         self.label_main = QLabel('REQUIZ', self)
         self.label_main.move(450, 230)
 
-        label_logo = QLabel('', self)
-        label_logo.resize(1300, 120)
-        label_logo.setAlignment(Qt.AlignCenter)
+        self.label_logo = QLabel('', self)
+        self.label_logo.resize(1300, 120)
+        self.label_logo.setAlignment(Qt.AlignCenter)
 
-        label_picture_header = QLabel(self)
-        label_picture_white = QLabel(self)
+        self.label_picture_header = QLabel(self)
+        self.label_picture_white = QLabel(self)
 
         # label design 설정
-        label_logo.setStyleSheet("color : white;")
+        self.label_logo.setStyleSheet("color : white;")
         self.label_main.setStyleSheet("color : white;"
                                       "font:65pt Segoe UI Black;")
         self.label_main.show()
@@ -47,13 +50,13 @@ class Main_Window(QWidget):
         # Qpixmap 선언 및 기본 설정
         pixmap_header = QPixmap('img/ReQuiz_header_image.png')
         pixmap_header = pixmap_header.scaledToHeight(120)
-        label_picture_header.move(-500, 0)
-        label_picture_header.setPixmap(pixmap_header)
+        self.label_picture_header.move(-500, 0)
+        self.label_picture_header.setPixmap(pixmap_header)
 
         pixmap_white = QPixmap('img/ReQuiz_logo_white.png')
         pixmap_white = pixmap_white.scaledToHeight(150)
-        label_picture_white.move(570, -15)
-        label_picture_white.setPixmap(pixmap_white)
+        self.label_picture_white.move(570, -15)
+        self.label_picture_white.setPixmap(pixmap_white)
 
         # QLineEdit 선언 및 기본적인 설정
         self.LineEdit_search_id = QLineEdit(self)
@@ -77,7 +80,7 @@ class Main_Window(QWidget):
         self.button_search_id.clicked.connect(self.click_search)
 
         self.button_login.resize(100, 50)
-        self.button_login.move(1050, 35)
+        self.button_login.move(1170, 35)
         self.button_login.clicked.connect(self.onClick_login)
 
         self.button_logout.resize(100, 50)
@@ -95,6 +98,7 @@ class Main_Window(QWidget):
                                                  font-weight: bold;
                                                  font: 22px Bahnschrift;
                                                  color: black;}""")
+        self.button_logout.clicked.connect(self.func_logout)
 
         self.button_logout.initStyle()
 
@@ -108,13 +112,26 @@ class Main_Window(QWidget):
             "PushButton{border:1px solid #7497CF; background-color: #A5E6E4; border-radius: 15px; font: Bahnschrift; font-weight: bold; color: black}")
         self.button_search_id.initStyle()
 
-        self.button_login.show()
-        self.button_logout.show()
+        if login_token == '':
+            self.button_login.show()
+            self.button_logout.close()
+
+        else:
+            self.button_logout.show()
+            self.button_login.close()
+
         self.button_search_id.show()
 
-    # -> 기능 추가
+    # -> 완료
     def onClick_login(self):
         self.main_to_login = Login_Window()
+
+    # -> 완료
+    def func_logout(self):
+        global login_token
+        login_token = ''
+        QMessageBox.about(self, 'Logout', 'Logout succeeded!')
+        self.initUI_main()
 
     # -> 기능 추가
     def click_search(self):
@@ -124,7 +141,6 @@ class Main_Window(QWidget):
         self.button_logout.close()
         self.label_main.close()
         self.line.close()
-
         self.initUI_list()
 
     # -> 완료
@@ -905,11 +921,14 @@ class Main_Window(QWidget):
     def func_signup(self):
         self.close()
 
-class Login_Window(QWidget):
+
+# -> 완료
+class Login_Window(Main_Window):
 
     def __init__(self):
         super().__init__()
         self.initUI()
+        self.setGeometry(750, 300, 0, 0)
         self.setFixedSize(400, 450)
         self.setWindowTitle('Login')
         self.setWindowIcon(QIcon('img/ReQuiz_logo_color'))
@@ -917,6 +936,7 @@ class Login_Window(QWidget):
 
     # -> 완료
     def initUI(self):
+        self.initUI_clear()
         # QLabel 선언 및 기본적인 설정
         label_background = QLabel('', self)
         label_background.resize(400, 550)
@@ -930,6 +950,7 @@ class Login_Window(QWidget):
         # QLabel design 설정
         label_background.setStyleSheet("background-color: #f8f8f8")
         self.label_main.setStyleSheet("color: white; font: 50px MS PGothic; background-color: #187aca;")
+        self.label_main.show()
 
         # QLineEdit 선언 및 기본적인 설정
         self.LineEdit_id = QLineEdit(self)
@@ -949,11 +970,13 @@ class Login_Window(QWidget):
                                        "border-radius: 15px;"
                                        "font: 20px Bahnschrift;"
                                        "font-weight: bold;")
+        self.LineEdit_id.show()
 
         self.LineEdit_pw.setStyleSheet("padding-left: 10px;"
                                        "border-radius: 15px;"
                                        "font: 20px Bahnschrift;"
                                        "font-weight: bold;")
+        self.LineEdit_pw.show()
 
         # PushButton 선언 및 기본 설정
         self.Button_login = PushButton('login', self)
@@ -969,18 +992,22 @@ class Login_Window(QWidget):
         self.Button_login.set_hovering_style("PushButton{border-radius: 15px; background-color: #4593D3; color: white; font: 30px Bahnschrift; font-weight: bold;}")
         self.Button_login.set_defualt_style("PushButton{border-radius: 15px; background-color: #187aca; font: 30px Bahnschrift; color: white; font-weight: bold;}")
         self.Button_login.initStyle()
+        self.Button_login.show()
         self.Button_new.setStyleSheet(
             "color: black; background-color: #f8f8f8; border: 0px;"
             "font: 20px; font-weight: bold;")
+        self.Button_new.show()
 
         # QPixmap 선언 및 기본 설정
         self.pixmap_color = QPixmap('img/ReQuiz_logo_black.png')
         self.pixmap_color = self.pixmap_color.scaledToHeight(150)
         self.label_image.move(123, 405)
         self.label_image.setPixmap(self.pixmap_color)
+        self.label_image.show()
 
-    # -> 기능 추가
+    # -> 완료
     def func_login(self):
+        global login_token
         url= "http://api.teamrequin.kro.kr/auth/login"
         id = self.LineEdit_id.text()
         pw = self.LineEdit_pw.text()
@@ -993,11 +1020,26 @@ class Login_Window(QWidget):
 
         if code == 200:
             self.close()
+            Dict = res.json()
+            login_token = Dict['access_token']
+            print(login_token)
+            start.initUI_main()
             QMessageBox.about(self, 'Message', 'Login succeeded!')
+
         elif code == 406:
             QMessageBox.about(self, 'Message', 'Please enter id and password again.')
 
-        print(code)
+    # -> 완료
+    def initUI_clear(self):
+        self.button_search_id.close()
+        self.button_login.close()
+        self.LineEdit_search_id.close()
+        self.button_logout.close()
+        self.label_main.close()
+        self.line.close()
+        self.label_picture_header.close()
+
+        self.test()
 
     # -> 완료
     def Click_new(self):
@@ -1140,8 +1182,22 @@ class Login_Window(QWidget):
         elif code == 201:
             QMessageBox.about(self, 'Message', 'You can use this ID')
 
-    # -> 회원가입 함수 (미완성)
+    # -> 회원가입 함수
     def func_signup(self):
+
+        url = "http://api.teamrequin.kro.kr/auth/check-same-name"
+        name = self.LineEdit_name.text()
+        data = {
+            "name": name
+        }
+        res = requests.post(url=url, json=data)
+        code = res.status_code
+        if code == 201:
+            pass
+        elif code == 406:
+            QMessageBox.about(self, "Sign up", "Name exists")
+            return 0
+
         url = "http://api.teamrequin.kro.kr/auth/register"
         id = self.LineEdit_id.text()
         pw = self.LineEdit_pw.text()
@@ -1158,27 +1214,14 @@ class Login_Window(QWidget):
         code = res.status_code
 
         if code == 201:
-            url = "http://api.teamrequin.kro.kr/auth/check-same-name"
-            name = self.LineEdit_name.text()
-            data = {
-                "name": name
-            }
-            res = requests.post(url=url, json=data)
-            code = res.status_code
-
-            if code == 201:
-                self.close()
-                QMessageBox.about(self, "Sign up", "Sign up Successful!")
-
-            elif code == 406:
-                QMessageBox.about(self, 'Message', 'Nickname exists')
-
-
+            self.close()
+            QMessageBox.about(self, "Sign up", "Sign up Successful!")
         elif code == 406:
             QMessageBox.about(self, "Sign up", "pw and pw_check have unsame text")
         elif code == 409:
             QMessageBox.about(self, "Sign up", "ID exists")
 
+# -> 완료
 class PushButton(QPushButton):
     default_style = ""
     hovering_style = ""
@@ -1210,6 +1253,7 @@ class PushButton(QPushButton):
 
     def set_hovering_style(self, hovering_st):
         self.hovering_style = hovering_st
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
