@@ -11,6 +11,11 @@ login_token = ''
 
 class Main_Window(QWidget):
     gap_in_write = 1
+    search_id = ''
+    user_id = ''
+    user_name = ''
+    workbook_count = 0
+
 
     def __init__(self):
         super().__init__()
@@ -77,7 +82,7 @@ class Main_Window(QWidget):
 
         self.button_search_id.resize(560, 50)
         self.button_search_id.move(370, 500)
-        self.button_search_id.clicked.connect(self.click_search)
+        self.button_search_id.clicked.connect(self.func_search)
 
         self.button_login.resize(100, 50)
         self.button_login.move(1170, 35)
@@ -112,11 +117,12 @@ class Main_Window(QWidget):
             "PushButton{border:1px solid #7497CF; background-color: #A5E6E4; border-radius: 15px; font: Bahnschrift; font-weight: bold; color: black}")
         self.button_search_id.initStyle()
 
+
         if login_token == '':
             self.button_login.show()
             self.button_logout.close()
 
-        else:
+        elif login_token != '':
             self.button_logout.show()
             self.button_login.close()
 
@@ -124,6 +130,9 @@ class Main_Window(QWidget):
 
     # -> 완료
     def onClick_login(self):
+        if login_token != '':
+            QMessageBox.about(self, 'Message', '이거 버트 왜 안사라져 ㅠㅠ')
+            return 0
         self.main_to_login = Login_Window()
 
     # -> 완료
@@ -133,17 +142,49 @@ class Main_Window(QWidget):
         QMessageBox.about(self, 'Logout', 'Logout succeeded!')
         self.initUI_main()
 
-    # -> 기능 추가
+    # -> 완료
+    def func_search(self):
+        url = "http://api.teamrequin.kro.kr/service/search-user"
+
+        if login_token == '':
+            QMessageBox.about(self, 'Message', 'Please login first!')
+            return 0
+
+        Main_Window.search_id = self.LineEdit_search_id.text()
+        data = {
+            'search_id' : Main_Window.search_id
+        }
+        res = requests.post(url=url, json=data)
+        code = res.status_code
+
+        if code == 200:
+            QMessageBox.about(self, 'Message', 'User Search Success!')
+
+            JsonData = res.json()
+            JsonData_User = JsonData['user']
+            JsonData_Workbook = JsonData['workbook']
+
+            Main_Window.user_id = JsonData_User['id']
+            Main_Window.user_name = JsonData_User['name']
+
+            Main_Window.workbook_count = len(JsonData_Workbook)
+
+            self.click_search()
+
+        elif code == 406:
+            QMessageBox.about(self, 'Message', 'This ID is not exist')
+
+    # -> 완료
     def click_search(self):
-        self.button_search_id.close()
-        self.button_login.close()
+        self.button_search_id.destroy()
+        self.button_login.destroy()
         self.LineEdit_search_id.close()
         self.button_logout.close()
         self.label_main.close()
         self.line.close()
         self.initUI_list()
 
-    # -> 완료
+    # -> 기능추가 (단어장)
     def initUI_list(self):
         self.setWindowTitle('List')
 
@@ -159,13 +200,13 @@ class Main_Window(QWidget):
         self.profile_label.setPixmap(self.profile_pix)
         self.profile_label.show()
 
-        self.label_myid = QLabel('Id: ', self)
+        self.label_myid = QLabel('Id: '+Main_Window.user_id, self)
         self.label_myid.setStyleSheet('border:1px solid; border-width: 0px 0px 1px 0px; border-color: #6FA893 #6FA893 #968383  #6FA893; font: 30px Bahnschrift;')
         self.label_myid.move(95, 440)
         self.label_myid.resize(240, 40)
         self.label_myid.show()
 
-        self.label_myname = QLabel('Name: ', self)
+        self.label_myname = QLabel('Name: '+Main_Window.user_name, self)
         self.label_myname.setStyleSheet('border:solid; border-width: 0px 0px 1px 0px; border-color: #6FA893 #6FA893 #968383  #6FA893; font: 30px Bahnschrift;')
         self.label_myname.move(95, 500)
         self.label_myname.resize(240, 40)
@@ -182,57 +223,55 @@ class Main_Window(QWidget):
         self.back_btn.clicked.connect(self.click_back_in_list)
         self.back_btn.show()
 
+
+
         self.plus_btn = PushButton('+', self)
         self.plus_btn.clicked.connect(self.click_write)
         self.plus_btn.resize(60, 60)
-        self.plus_btn.set_defualt_style('''QPushButton{
-                                                   display: block;
-                                                   font-size: 50px;
-                                                   color: white;
-                                                   border-radius: 30px;
-                                                   background-color: #FEBC01;}''')
-        self.plus_btn.set_hovering_style('''QPushButton{
-                                                    display: block;
-                                                    border-radius: 30px;
-                                                    color: white;
-                                                    font-size: 50px;
-                                                    background-color: #f0cd35;}''')
+
+        self.plus_btn.set_defualt_style(
+            '''QPushButton{display: block; font-size: 50px; color: white; border-radius: 30px; background-color: #FEBC01;}''')
+        self.plus_btn.set_hovering_style(
+            '''QPushButton{display: block; border-radius: 30px; color: white; font-size: 50px; background-color: #f0cd35;}''')
         self.plus_btn.initStyle()
-        self.plus_btn.move(720, 290)
-        self.plus_btn.show()
 
         self.modify_btn = PushButton('Modify information', self)
         self.modify_btn.resize(260, 35)
+        self.modify_btn.move(87, 570)
+        self.modify_btn.clicked.connect(self.click_modify_information)
+        self.modify_btn.show()
         self.modify_btn.set_defualt_style(
             "QPushButton{background-color: #596ac9; font: 17px; font-weight: bold; border-radius: 10px; color: white;}")
         self.modify_btn.set_hovering_style(
             "QPushButton{background-color: #6A83CF; border-radius: 10px; color: white; font: 17px; font-weight: bold;}")
         self.modify_btn.initStyle()
-        self.modify_btn.move(87, 570)
-        self.modify_btn.clicked.connect(self.click_modify_information)
-        self.modify_btn.show()
 
-        self.button_library = PushButton('First Library', self)
-        self.button_library.resize(600, 60)
-        self.button_library.set_defualt_style(
-            "QPushButton{background-color: white; border-radius: 30px; font: 30px Bahnschrift;}")
-        self.button_library.set_hovering_style(
-            "QPushButton{background-color: #cccccc; border-radius: 30px; font: 30px Bahnschrift;}")
-        self.button_library.initStyle()
-        self.button_library.move(450, 200)
-        self.button_library.show()
-        self.button_library.clicked.connect(self.click_word)
+        for i in range(2):
+            self.button_library = PushButton('First Library', self)
+            self.button_library.resize(600, 60)
+            self.button_library.move(450, 200 + i*100)
+            self.button_library.clicked.connect(self.click_word)
+            self.button_library.show()
 
-        self.modify_btn2 = PushButton('Modify', self)
-        self.modify_btn2.resize(90, 60)
-        self.modify_btn2.set_hovering_style(
-            "QPushButton{background-color: #6A83CF; border-radius: 30px; color: white; font: 20px Bahnschrift; font-weight: bold;}")
-        self.modify_btn2.set_defualt_style(
-            "QPushButton{background-color: #596ac9; border-radius: 30px; color: white; font: 20px Bahnschrift; font-weight: bold;}")
-        self.modify_btn2.initStyle()
-        self.modify_btn2.move(980, 200)
-        self.modify_btn2.clicked.connect(self.click_modify_word)
-        self.modify_btn2.show()
+            self.modify_btn2 = PushButton('Modify', self)
+            self.modify_btn2.resize(90, 60)
+            self.modify_btn2.move(980, 200 + i*100)
+            self.modify_btn2.clicked.connect(self.click_modify_word)
+            self.modify_btn2.show()
+
+            self.modify_btn2.set_hovering_style("QPushButton{background-color: #6A83CF; border-radius: 30px; color: white; font: 20px Bahnschrift; font-weight: bold;}")
+            self.modify_btn2.set_defualt_style("QPushButton{background-color: #596ac9; border-radius: 30px; color: white; font: 20px Bahnschrift; font-weight: bold;}")
+            self.modify_btn2.initStyle()
+
+            self.button_library.set_defualt_style("QPushButton{background-color: white; border-radius: 30px; font: 30px Bahnschrift;}")
+            self.button_library.set_hovering_style("QPushButton{background-color: #cccccc; border-radius: 30px; font: 30px Bahnschrift;}")
+            self.button_library.initStyle()
+
+            self.plus_btn.move(720, 290 + i * 100)
+            self.plus_btn.show()
+
+
+        # -> 완료
 
     # -> 완료
     def click_back_in_list(self):
@@ -248,16 +287,17 @@ class Main_Window(QWidget):
 
         self.initUI_main()
 
-    # -> 완료
+    # -> 미완성 (리스트 2개 이상시 하나만 사라짐)
     def click_modify_information(self):
         self.profile_label.close()
         self.label_myid.close()
         self.label_myname.close()
-        self.button_library.close()
         self.plus_btn.close()
-        self.modify_btn.close()
         self.modify_btn2.close()
+        self.modify_btn.close()
         self.back_btn.close()
+        self.modify_btn2.close()
+        self.button_library.close()
 
         self.initUI_modify_information()
 
@@ -917,11 +957,6 @@ class Main_Window(QWidget):
 
         self.initUI_word()
 
-    # -> 완료
-    def func_signup(self):
-        self.close()
-
-
 # -> 완료
 class Login_Window(Main_Window):
 
@@ -1038,8 +1073,6 @@ class Login_Window(Main_Window):
         self.label_main.close()
         self.line.close()
         self.label_picture_header.close()
-
-        self.test()
 
     # -> 완료
     def Click_new(self):
