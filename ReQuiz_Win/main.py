@@ -1,20 +1,38 @@
-import sys
-import requests, json
+import sys, requests, json, random
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.Qt import *
 from PyQt5 import QtCore
 
-
+# -> 로그인 인증 시 필요한 토큰
 login_token = ''
 
+# -> 로그인 한 내 ID
+my_id = ''
 
 class Main_Window(QWidget):
     gap_in_write = 1
+
+    # -> 찾으려는 ID
     search_id = ''
+
+    # -> initUI_list에서 필요한 값들
     user_id = ''
     user_name = ''
     workbook_count = 0
+
+    # -> func_write에서 필요한 값들
+    write_title = ''
+    write_list_sub = {}
+    write_list = {}
+
+    # -> 검
+    search_uuid = 0
+
+    # -> 회원정보 수정에서 필요한 값
+    modify_name = ''
+    modify_pw = ''
+    modify_pw_chk = ''
 
 
     def __init__(self):
@@ -131,15 +149,18 @@ class Main_Window(QWidget):
     # -> 완료
     def onClick_login(self):
         if login_token != '':
-            QMessageBox.about(self, 'Message', '이거 버트 왜 안사라져 ㅠㅠ')
+            QMessageBox.about(self, 'Message', '이거 버튼 왜 안사라져 ㅠㅠ')
             return 0
         self.main_to_login = Login_Window()
 
     # -> 완료
     def func_logout(self):
         global login_token
+        global my_id
+
         login_token = ''
-        QMessageBox.about(self, 'Logout', 'Logout succeeded!')
+        my_id = ''
+        QMessageBox.about(self, 'Logout', 'Logout success!')
         self.initUI_main()
 
     # -> 완료
@@ -148,6 +169,9 @@ class Main_Window(QWidget):
 
         if login_token == '':
             QMessageBox.about(self, 'Message', 'Please login first!')
+            return 0
+        if self.LineEdit_search_id.text() == '':
+            QMessageBox.about(self, 'Message', 'Please enter the ID!')
             return 0
 
         Main_Window.search_id = self.LineEdit_search_id.text()
@@ -159,16 +183,6 @@ class Main_Window(QWidget):
 
         if code == 200:
             QMessageBox.about(self, 'Message', 'User Search Success!')
-
-            JsonData = res.json()
-            JsonData_User = JsonData['user']
-            JsonData_Workbook = JsonData['workbook']
-
-            Main_Window.user_id = JsonData_User['id']
-            Main_Window.user_name = JsonData_User['name']
-
-            Main_Window.workbook_count = len(JsonData_Workbook)
-
             self.click_search()
 
         elif code == 406:
@@ -184,8 +198,27 @@ class Main_Window(QWidget):
         self.line.close()
         self.initUI_list()
 
-    # -> 기능추가 (단어장)
+    # -> 완료
     def initUI_list(self):
+        url = "http://api.teamrequin.kro.kr/service/search-user"
+        Main_Window.search_id = self.LineEdit_search_id.text()
+        data = {
+            'search_id': Main_Window.search_id
+        }
+        res = requests.post(url=url, json=data)
+        code = res.status_code
+
+        if code == 200:
+            JsonData = res.json()
+            JsonData_User = JsonData['user']
+            JsonData_Workbook = JsonData['workbook']
+
+            Main_Window.user_id = JsonData_User['id']
+            Main_Window.user_name = JsonData_User['name']
+
+            Main_Window.workbook_count = len(JsonData_Workbook)
+            print(JsonData_Workbook)
+
         self.setWindowTitle('List')
 
         self.line = QLabel('', self)
@@ -228,6 +261,7 @@ class Main_Window(QWidget):
         self.plus_btn = PushButton('+', self)
         self.plus_btn.clicked.connect(self.click_write)
         self.plus_btn.resize(60, 60)
+        self.plus_btn.move(720, 190)
 
         self.plus_btn.set_defualt_style(
             '''QPushButton{display: block; font-size: 50px; color: white; border-radius: 30px; background-color: #FEBC01;}''')
@@ -239,15 +273,17 @@ class Main_Window(QWidget):
         self.modify_btn.resize(260, 35)
         self.modify_btn.move(87, 570)
         self.modify_btn.clicked.connect(self.click_modify_information)
-        self.modify_btn.show()
+        if my_id == Main_Window.user_id:
+            self.modify_btn.show()
         self.modify_btn.set_defualt_style(
             "QPushButton{background-color: #596ac9; font: 17px; font-weight: bold; border-radius: 10px; color: white;}")
         self.modify_btn.set_hovering_style(
             "QPushButton{background-color: #6A83CF; border-radius: 10px; color: white; font: 17px; font-weight: bold;}")
         self.modify_btn.initStyle()
 
-        for i in range(2):
-            self.button_library = PushButton('First Library', self)
+        for i in range(Main_Window.workbook_count):
+            dict_in_list_number = JsonData_Workbook[str(i)]
+            self.button_library = PushButton(dict_in_list_number['name'], self)
             self.button_library.resize(600, 60)
             self.button_library.move(450, 200 + i*100)
             self.button_library.clicked.connect(self.click_word)
@@ -257,7 +293,8 @@ class Main_Window(QWidget):
             self.modify_btn2.resize(90, 60)
             self.modify_btn2.move(980, 200 + i*100)
             self.modify_btn2.clicked.connect(self.click_modify_word)
-            self.modify_btn2.show()
+            if my_id == Main_Window.user_id:
+                self.modify_btn2.show()
 
             self.modify_btn2.set_hovering_style("QPushButton{background-color: #6A83CF; border-radius: 30px; color: white; font: 20px Bahnschrift; font-weight: bold;}")
             self.modify_btn2.set_defualt_style("QPushButton{background-color: #596ac9; border-radius: 30px; color: white; font: 20px Bahnschrift; font-weight: bold;}")
@@ -268,42 +305,47 @@ class Main_Window(QWidget):
             self.button_library.initStyle()
 
             self.plus_btn.move(720, 290 + i * 100)
+        if my_id == Main_Window.user_id:
             self.plus_btn.show()
-
-
-        # -> 완료
 
     # -> 완료
     def click_back_in_list(self):
         self.profile_label.close()
         self.label_myid.close()
         self.label_myname.close()
-        self.button_library.close()
         self.plus_btn.close()
         self.modify_btn.close()
-        self.modify_btn2.close()
+        if Main_Window.workbook_count != 0:
+            self.modify_btn2.close()
+            self.button_library.close()
         self.back_btn.close()
         self.line.close()
 
         self.initUI_main()
 
-    # -> 미완성 (리스트 2개 이상시 하나만 사라짐)
+    # -> 완료
     def click_modify_information(self):
         self.profile_label.close()
         self.label_myid.close()
         self.label_myname.close()
         self.plus_btn.close()
-        self.modify_btn2.close()
         self.modify_btn.close()
+        if Main_Window.workbook_count != 0:
+            self.modify_btn2.close()
+            self.button_library.close()
         self.back_btn.close()
-        self.modify_btn2.close()
-        self.button_library.close()
+        self.line.close()
 
         self.initUI_modify_information()
 
     # -> 완료
     def initUI_modify_information(self):
         #QLabel 설정
+        self.line = QLabel('', self)
+        self.line.move(0, 120)
+        self.line.resize(1300, 680)
+        self.line.setStyleSheet("background-image: url(img/ReQuiz_background2_image.png);")
+        self.line.show()
 
         self.label_id = QLabel('ID', self)
         self.label_id.move(670, 253)
@@ -390,22 +432,68 @@ class Main_Window(QWidget):
         self.back_btn.initStyle()
         self.back_btn.show()
 
+    # -> 완료
+    def button_modify_complete_click(self):
+        Main_Window.modify_name = self.LineEdit_nickname_value.text()
+        Main_Window.modify_pw =  self.LineEdit_pw_value.text()
+        Main_Window.modify_pw_chk = self.LineEdit_pw_check_value.text()
+
+        url = 'http://api.teamrequin.kro.kr/auth/user-edit'
+        data = {
+            'name': Main_Window.modify_name,
+            'pw': Main_Window.modify_pw,
+            'pw_check' : Main_Window.modify_pw_chk
+        }
+
+        res = requests.post(url=url, json=data, headers= {"Authorization": "Bearer "+login_token})
+        code = res.status_code
+        print(code)
+
+        if code == 201:
+            QMessageBox.about(self, "message", "Information Modify Success!!")
+            self.label_id.close()
+            self.label_nickname.close()
+            self.label_pw.close()
+            self.label_pw_check.close()
+            self.label_picture.close()
+            self.label_id_value.close()
+            self.LineEdit_nickname_value.close()
+            self.LineEdit_pw_value.close()
+            self.LineEdit_pw_check_value.close()
+            self.button_modify_complete.close()
+            self.back_btn.close()
+            self.label_id_message.close()
+
+            self.initUI_list()
+
+        elif code == 409:
+            QMessageBox.about(self, "message", "pw and pw_check have unsame text")
+            return 0
+
     # - > 기능 추가
     def click_modify_word(self):
         self.profile_label.close()
         self.label_myid.close()
         self.label_myname.close()
-        self.button_library.close()
         self.plus_btn.close()
         self.modify_btn.close()
-        self.modify_btn2.close()
+        if Main_Window.workbook_count != 0:
+            self.modify_btn2.close()
+            self.button_library.close()
         self.back_btn.close()
+        self.line.close()
 
         self.initUI_modify_word()
 
-    # -> 완료 (스크롤 바, 단어 삭제 X)
+    # -> 기능 추가 (스크롤 바, 단어 삭제 X)
     def initUI_modify_word(self):
         self.setWindowTitle('Modify')
+
+        self.line = QLabel('', self)
+        self.line.move(0, 120)
+        self.line.resize(1300, 680)
+        self.line.setStyleSheet("background-image: url(img/ReQuiz_background2_image.png);")
+        self.line.show()
 
         # QLineEdit 선언 및 기본 설정
         self.LineEdit_dict_title = QLineEdit(self)
@@ -501,24 +589,6 @@ class Main_Window(QWidget):
         self.button_plus_word.show()
         self.button_create.show()
 
-    # -> 기능 추가
-    def button_modify_complete_click(self):
-        QMessageBox.about(self, "message", "Modify successful!!")
-        self.label_id.close()
-        self.label_nickname.close()
-        self.label_pw.close()
-        self.label_pw_check.close()
-        self.label_picture.close()
-        self.label_id_value.close()
-        self.LineEdit_nickname_value.close()
-        self.LineEdit_pw_value.close()
-        self.LineEdit_pw_check_value.close()
-        self.button_modify_complete.close()
-        self.back_btn.close()
-        self.label_id_message.close()
-
-        self.initUI_list()
-
     # -> 완료
     def click_back_in_modify(self):
         self.label_id.close()
@@ -536,16 +606,18 @@ class Main_Window(QWidget):
 
         self.initUI_list()
 
-    # -> 기능 추가
+    # -> 완료
     def click_write(self):
         self.profile_label.close()
         self.label_myid.close()
         self.label_myname.close()
-        self.button_library.close()
         self.plus_btn.close()
         self.modify_btn.close()
-        self.modify_btn2.close()
+        if Main_Window.workbook_count != 0:
+            self.modify_btn2.close()
+            self.button_library.close()
         self.back_btn.close()
+        self.line.close()
 
         self.initUI_write()
 
@@ -554,6 +626,11 @@ class Main_Window(QWidget):
         self.setWindowTitle('Write')
         Main_Window.gap_in_write = 0
 
+        self.line = QLabel('', self)
+        self.line.move(0, 120)
+        self.line.resize(1300, 680)
+        self.line.setStyleSheet("background-image: url(img/ReQuiz_background2_image.png);")
+        self.line.show()
 
         # QLineEdit 선언 및 기본 설정
         self.LineEdit_dict_title = QLineEdit(self)
@@ -650,23 +727,23 @@ class Main_Window(QWidget):
         self.button_plus_word.show()
         self.button_create.show()
 
-    # -> 기능 추가
-    def click_create_list(self):
-        QMessageBox.about(self, 'Message', 'Complete!!!')
-
-        self.LineEdit_dict_title.close()
-        self.LineEdit_dict_answer1.close()
-        self.LineEdit_dict_question1.close()
-        self.label_th_1.close()
-        self.button_plus_word.close()
-        self.button_create.close()
-        self.back_btn.close()
-
-        self.initUI_list()
-
-    # -> 보완
+    # -> 완료
     def func_add_word(self):
+        if self.LineEdit_dict_answer1.text() == '':
+            QMessageBox.about(self, 'Message', 'Please don\'t blank!')
+            return
+        if self.LineEdit_dict_question1.text() == '':
+            QMessageBox.about(self, 'Message', 'Please don\'t blank!')
+            return
+
         Main_Window.gap_in_write += 1
+        answer = self.LineEdit_dict_answer1.text()
+        question = self.LineEdit_dict_question1.text()
+
+        Listlist = {}
+        Listlist[str(Main_Window.gap_in_write-1)] = {'q':question, 'a': answer}
+        Main_Window.write_list_sub.update(Listlist)
+
         self.LineEdit_dict_question1 = QLineEdit(self)
         self.LineEdit_dict_answer1 = QLineEdit(self)
 
@@ -712,6 +789,59 @@ class Main_Window(QWidget):
         self.label_th_1.show()
 
     # -> 완료
+    def click_create_list(self):
+        if self.LineEdit_dict_answer1.text() == '':
+            QMessageBox.about(self, 'Message', 'Please don\'t blank!')
+            return
+        if self.LineEdit_dict_question1.text() == '':
+            QMessageBox.about(self, 'Message', 'Please don\'t blank!')
+            return
+        if self.LineEdit_dict_title.text() == '':
+            QMessageBox.about(self, 'Message', 'Please don\'t blank!')
+            return
+
+        Main_Window.write_title = self.LineEdit_dict_title.text()
+        answer = self.LineEdit_dict_answer1.text()
+        question = self.LineEdit_dict_question1.text()
+
+        Listlist = {}
+        Listlist[str(Main_Window.gap_in_write)] = {'q': question, 'a': answer}
+        Main_Window.write_list_sub.update(Listlist)
+
+        list_sub = {}
+        list_sub['list'] = Main_Window.write_list_sub
+        Main_Window.write_list.update(list_sub)
+
+        Listtitle = {}
+        Listtitle['title'] = Main_Window.write_title
+        Main_Window.write_list.update(Listtitle)
+
+        uuid = random.randrange(10000, 99999)
+        Listuuid = {}
+        Listuuid['uuid'] = str(uuid)
+        Main_Window.write_list.update(Listuuid)
+
+        headers = {'Authorization': "Bearer "+ login_token}
+
+        print(Main_Window.write_list)
+
+        url = "http://api.teamrequin.kro.kr/service/create-list"
+        req = requests.post(url, json=Main_Window.write_list, headers= headers)
+        code = req.status_code
+
+        QMessageBox.about(self, 'Message', 'Complete!!!')
+
+        self.LineEdit_dict_title.close()
+        self.LineEdit_dict_answer1.close()
+        self.LineEdit_dict_question1.close()
+        self.label_th_1.close()
+        self.button_plus_word.close()
+        self.button_create.close()
+        self.back_btn.close()
+
+        self.initUI_list()
+
+    # -> 완료
     def click_back_in_write(self):
         self.LineEdit_dict_title.close()
         self.LineEdit_dict_answer1.close()
@@ -735,9 +865,15 @@ class Main_Window(QWidget):
         self.back_btn.close()
         self.initUI_word()
 
-    # -> 완료
+    # -> 기능 추가
     def initUI_word(self):
         self.setWindowTitle('Library')
+
+        self.line = QLabel('', self)
+        self.line.move(0, 120)
+        self.line.resize(1300, 680)
+        self.line.setStyleSheet("background-image: url(img/ReQuiz_background2_image.png);")
+        self.line.show()
 
         # label design 설정
         self.label_title = QLabel('Test1', self)
@@ -810,9 +946,15 @@ class Main_Window(QWidget):
 
         self.initUI_solve()
 
-    # -> 완료
+    # -> 기능 추가
     def initUI_solve(self):
         self.setWindowTitle('Solve')
+
+        self.line = QLabel('', self)
+        self.line.move(0, 120)
+        self.line.resize(1300, 680)
+        self.line.setStyleSheet("background-image: url(img/ReQuiz_background2_image.png);")
+        self.line.show()
 
         #QLabel 기본 선언
         self.label_question_inSolve = QLabel('문제 내용', self)
@@ -891,11 +1033,16 @@ class Main_Window(QWidget):
 
         self.initUI_score()
 
-    # -> 완료
+    # -> 기능 추가
     def initUI_score(self):
         self.setWindowTitle('Score')
 
-        self.setWindowTitle('Score')
+        self.line = QLabel('', self)
+        self.line.move(0, 120)
+        self.line.resize(1300, 680)
+        self.line.setStyleSheet("background-image: url(img/ReQuiz_background2_image.png);")
+        self.line.show()
+
         self.label_score_score = QLabel('89', self)
         self.label_score_score.resize(900, 490)
         self.label_score_score.move(200, 230)
@@ -937,7 +1084,7 @@ class Main_Window(QWidget):
         self.button_score_return.initStyle()
         self.button_score_return.show()
 
-    # -> 완료
+    # -> 기능 추가
     def click_score_back(self):
         self.label_score_description.close()
         self.label_score_title.close()
@@ -947,7 +1094,7 @@ class Main_Window(QWidget):
 
         self.initUI_list()
 
-    # -> 완료
+    # -> 기능 추가
     def click_score_return(self):
         self.label_score_description.close()
         self.label_score_title.close()
@@ -1042,7 +1189,15 @@ class Login_Window(Main_Window):
 
     # -> 완료
     def func_login(self):
+        if self.LineEdit_id.text() == '':
+            QMessageBox.about(self, 'Message', 'Please enter the ID!')
+            return 0
+        if self.LineEdit_pw.text() == '':
+            QMessageBox.about(self, 'Message', 'Please enter the PassWord!')
+            return 0
+
         global login_token
+        global my_id
         url= "http://api.teamrequin.kro.kr/auth/login"
         id = self.LineEdit_id.text()
         pw = self.LineEdit_pw.text()
@@ -1054,12 +1209,12 @@ class Login_Window(Main_Window):
         code = res.status_code
 
         if code == 200:
+            my_id = self.LineEdit_id.text()
             self.close()
             Dict = res.json()
             login_token = Dict['access_token']
-            print(login_token)
             start.initUI_main()
-            QMessageBox.about(self, 'Message', 'Login succeeded!')
+            QMessageBox.about(self, 'Message', 'Login success!')
 
         elif code == 406:
             QMessageBox.about(self, 'Message', 'Please enter id and password again.')
@@ -1187,6 +1342,10 @@ class Login_Window(Main_Window):
 
     # -> 회원가입 시 name이 중복되는지 체크하는 함수
     def func_check_name_overlap(self):
+        if self.LineEdit_name.text() == '':
+            QMessageBox.about(self, 'Message', 'Please enter the NickName!')
+            return 0
+
         url = "http://api.teamrequin.kro.kr/auth/check-same-name"
         text = self.LineEdit_name.text()
         data = {
@@ -1202,6 +1361,10 @@ class Login_Window(Main_Window):
 
     # -> 회원가입 시 id가 중복되는지 체크하는 함수
     def func_check_id_overlap(self):
+        if self.LineEdit_id.text() == '':
+            QMessageBox.about(self, 'Message', 'Please enter the ID!')
+            return 0
+
         url = "http://api.teamrequin.kro.kr/auth/sameaccount"
         text = self.LineEdit_id.text()
         data = {
@@ -1217,6 +1380,15 @@ class Login_Window(Main_Window):
 
     # -> 회원가입 함수
     def func_signup(self):
+        if self.LineEdit_name.text() == '':
+            QMessageBox.about(self, 'Message', 'Please enter the NickName!')
+            return 0
+        if self.LineEdit_id.text() == '':
+            QMessageBox.about(self, 'Message', 'Please enter the ID!')
+            return 0
+        if self.LineEdit_pw.text() == '':
+            QMessageBox.about(self, 'Message', 'Please enter the PassWord!')
+            return 0
 
         url = "http://api.teamrequin.kro.kr/auth/check-same-name"
         name = self.LineEdit_name.text()
@@ -1248,7 +1420,7 @@ class Login_Window(Main_Window):
 
         if code == 201:
             self.close()
-            QMessageBox.about(self, "Sign up", "Sign up Successful!")
+            QMessageBox.about(self, "Sign up", "Sign up Success!")
         elif code == 406:
             QMessageBox.about(self, "Sign up", "pw and pw_check have unsame text")
         elif code == 409:
